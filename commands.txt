@@ -1,0 +1,16 @@
+(pynq-venv) xilinx@pynq:/$ sudo chown xilinx:xilinx /home/xilinx      cd /
+(pynq-venv) xilinx@pynq:/$ cd ~
+(pynq-venv) xilinx@pynq:~$ mkdir CG4002
+(pynq-venv) xilinx@pynq:~$ cd CG4002
+(pynq-venv) xilinx@pynq:~/CG4002$ vim ultra96_processor.py
+
+ssh -L 8888:localhost:8889 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
+
+ssh xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
+
+所以数据能够返回是因为MQTT over TCP是双向通信，SSH隧道保持了连接的持久性，允许数据在两个方向上流动。只通过mqtt和ssh -L 8888:localhost:8889 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
+
+# 给脚本执行权限
+chmod +x automate_fpga.sh
+
+./automate_fpga.sh
