@@ -57,11 +57,12 @@ sshpass -p 'xilinx' ssh -o StrictHostKeyChecking=no xilinx@makerslab-fpga-53.ddn
     
     echo "Checking for existing imu_data.csv..."
     if [ -f "imu_data.csv" ]; then
-        echo "Removing existing imu_data.csv..."
-        rm -f imu_data.csv
-        echo "✅ imu_data.csv removed"
+        echo "Clearing imu_data.csv content..."
+        > imu_data.csv
+        echo "✅ imu_data.csv cleared"
     else
-        echo "ℹ️ No existing imu_data.csv found"
+        echo "Creating new imu_data.csv..."
+        touch imu_data.csv
     fi
     
     echo "Current directory files:"
