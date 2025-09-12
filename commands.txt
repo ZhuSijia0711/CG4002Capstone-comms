@@ -4,7 +4,7 @@
 (pynq-venv) xilinx@pynq:~$ cd CG4002
 (pynq-venv) xilinx@pynq:~/CG4002$ vim ultra96_processor.py
 
-ssh -L 8888:localhost:8889 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
+ssh -L 18883:localhost:8883 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
 
 ssh xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
 
@@ -14,3 +14,9 @@ ssh xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
 chmod +x automate_fpga.sh
 
 ./automate_fpga.sh
+
+to start mosquitto
+sudo mosquitto -c /etc/mosquitto/mosquitto.conf -v
+
+
+ssh -R 8883:localhost:8883 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg

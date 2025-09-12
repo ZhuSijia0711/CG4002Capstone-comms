@@ -1,6 +1,5 @@
 #include <Wire.h>
 #include <WiFi.h>
-#include <WiFiUdp.h>
 #include "MPU6050.h"
 
 #define NUM_IMU 5
@@ -20,7 +19,7 @@ float gyroOffset[NUM_IMU][3]  = {0};
 // WiFi
 const char* ssid = "iPhone";
 const char* password = "zhuqshenw";
-WiFiUDP udp;
+WiFiClient client;
 const char* laptop_ip = "172.20.10.6"; // your PC IP
 const int laptop_port = 4210;
 
@@ -63,6 +62,22 @@ void calibrateIMU(int imuIndex) {
   gyroOffset[imuIndex][2]=(float)gz_sum/samples;
 }
 
+void scanI2C() {
+  Serial.println("Scanning I2C bus...");
+  byte error, address;
+  for(address = 1; address < 127; address++ ) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0) {
+      Serial.print("I2C device found at address 0x");
+      if (address < 16) Serial.print("0");
+      Serial.print(address, HEX);
+      Serial.println(" !");
+    }
+  }
+  Serial.println("Scan complete.");
+}
+
 // === Setup ===
 void setup() {
   Serial.begin(115200);
@@ -82,22 +97,25 @@ void setup() {
   Serial.println("\n✅ WiFi connected");
   Serial.print("ESP32 IP: "); Serial.println(WiFi.localIP());
 
-  scanI2C(); // 添加这行来扫描I2C设备
-    Serial.println("\n✅ WiFi connected");
-  Serial.print("ESP32 IP: "); Serial.println(WiFi.localIP());
+  scanI2C(); // Scan all I2C devices
 
-  // IMU init - 测试所有通道
-  for (int i=0; i<8; i++) { // 测试TCA的所有8个通道
+  // TCP connect
+  if (!client.connect(laptop_ip, laptop_port)) {
+    Serial.println("❌ Connection to laptop failed!");
+  } else {
+    Serial.println("✅ Connected to laptop via TCP");
+  }
+
+  // IMU init - test all TCA channels
+  for (int i=0; i<8; i++) {
     tcaSelect(i);
     Serial.print("Testing TCA channel "); Serial.println(i);
-    
-    // 扫描这个通道上是否有设备
     byte error, address;
     int foundDevices = 0;
     for(address = 1; address < 127; address++ ) {
       Wire.beginTransmission(address);
       error = Wire.endTransmission();
-      if (error == 0 && address != 0x70) { // 排除TCA自己的地址
+      if (error == 0 && address != 0x70) {
         Serial.print("  Found device at address 0x");
         if (address < 16) Serial.print("0");
         Serial.print(address, HEX);
@@ -105,17 +123,14 @@ void setup() {
         foundDevices++;
       }
     }
-    
     if (foundDevices == 0) {
       Serial.println("  No devices found on this channel");
     }
-    
     delay(100);
   }
 
   // IMU init
   for (int i=0;i<NUM_IMU;i++) {
-    //tcaSelect(i);
     imu[i].initialize();
     if (imu[i].testConnection()) {
       Serial.print("IMU "); Serial.print(i); Serial.println(" connected");
@@ -125,22 +140,6 @@ void setup() {
     }
     delay(200);
   }
-}
-
-void scanI2C() {
-  Serial.println("Scanning I2C bus...");
-  byte error, address;
-  for(address = 1; address < 127; address++ ) {
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.print("I2C device found at address 0x");
-      if (address < 16) Serial.print("0");
-      Serial.print(address, HEX);
-      Serial.println(" !");
-    }
-  }
-  Serial.println("Scan complete.");
 }
 
 // === Loop ===
@@ -165,16 +164,19 @@ void loop() {
     packet += String(gx_dps,3)+","+String(gy_dps,3)+","+String(gz_dps,3)+";";
   }
 
-  // Send IMU data over UDP
-  udp.beginPacket(laptop_ip, laptop_port);
-  udp.print(packet);
-  udp.endPacket();
+  // Send IMU data over TCP
+  if (client.connected()) {
+    client.print(packet);
+  } else {
+    Serial.println("⚠️ Disconnected, retrying...");
+    if (client.connect(laptop_ip, laptop_port)) {
+      Serial.println("✅ Reconnected to laptop");
+    }
+  }
 
   // === Motor burst logic ===
   unsigned long now = millis();
-
   if (!inBurst) {
-    // Wait for next burst
     if (now - lastMotorEvent >= burstInterval) {
       inBurst = true;
       pulseCount = 0;
@@ -183,7 +185,6 @@ void loop() {
       lastMotorEvent = now;
     }
   } else {
-    // Inside a burst
     if (motorState && now - lastMotorEvent >= pulseDuration) {
       motorState = false;
       digitalWrite(MOTOR_PIN, LOW);
