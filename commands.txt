@@ -18,5 +18,12 @@ chmod +x automate_fpga.sh
 to start mosquitto
 sudo mosquitto -c /etc/mosquitto/mosquitto.conf -v
 
+sudo pkill mosquitto
+
 
 ssh -R 8883:localhost:8883 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
+
+latest file:
+hardware_mqtt_tcp_temp.py  / test_send.py
+laptop_tcp_temp.py
+ultra96_tls.py

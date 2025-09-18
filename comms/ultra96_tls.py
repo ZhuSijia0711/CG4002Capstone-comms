@@ -80,25 +80,22 @@ class Ultra96MQTTSubscriber:
             print(f"❌ Failed to connect to MQTT broker: {rc}")
 
     def on_message(self, client, userdata, msg):
-        """Handle incoming MQTT messages from laptop broker"""
         try:
             if msg.topic == self.topic_sensor_to_ultra96:
-                message = json.loads(msg.payload.decode())
-                
-                print(f"📥 Received {message['length']} bytes from laptop")
-                print(f"   Source: {message.get('source', 'unknown')}")
-                
-                result = self.process_sensor_data(message)
-                
-                # Send processing result back to laptop
+                raw_data = msg.payload  # <-- use payload directly
+
+                print(f"📥 Received {len(raw_data)} bytes from laptop")
+
+                result = self.process_binary_sensor_data(raw_data)
+
+                # Optionally send processed data back
                 self.client.publish(
                     self.topic_processed_data,
                     json.dumps(result),
                     qos=1
                 )
-                
                 print(f"📤 Sent processed data back to laptop")
-                    
+
         except Exception as e:
             error_msg = f"❌ Error processing MQTT message: {e}"
             print(error_msg)
@@ -117,46 +114,40 @@ class Ultra96MQTTSubscriber:
             return self._generate_error_response(f"Processing error: {str(e)}")
 
     def process_binary_sensor_data(self, raw_data):
-        """Process binary SENSOR_DATA packet"""
+        """Process binary SENSOR_DATA packet into actual 5x6 IMU values only"""
         try:
-            if len(raw_data) != 71:
-                return self._generate_error_response("Invalid packet length")
-            
-            # Parse packet (simplified for example)
-            sequence = struct.unpack('I', raw_data[1:5])[0]
-            timestamp = struct.unpack('I', raw_data[5:9])[0]
-            
-            # Process sensor data (simplified)
+            # Each IMU: 6 floats, 5 IMUs → 30 floats → 120 bytes
+            if len(raw_data) != 120:
+                return self._generate_error_response(f"Invalid packet length: {len(raw_data)}")
+
             sensor_readings = []
-            for i in range(5):
+            offset = 0
+
+            # Extract 5 IMUs
+            for imu_id in range(5):
+                imu_values = struct.unpack('!6f', raw_data[offset:offset+24])  # 6 floats * 4 bytes
+                accel = {"x": imu_values[0], "y": imu_values[1], "z": imu_values[2]}
+                gyro  = {"x": imu_values[3], "y": imu_values[4], "z": imu_values[5]}
                 sensor_readings.append({
-                    "sensor_id": i,
-                    "acceleration": {"x": 0.1, "y": 0.2, "z": 0.3},
-                    "gyroscope": {"x": 0.4, "y": 0.5, "z": 0.6}
+                    "sensor_id": imu_id,
+                    "acceleration": accel,
+                    "gyroscope": gyro
                 })
-            
-            # Write to CSV
+                offset += 24
+
+            # Write only IMU readings to CSV
             self.write_to_csv(sensor_readings)
-            
-            # Generate response
+
+            # Generate minimal response (optional)
             return {
                 "session_id": self.session_counter,
-                "sequence": sequence,
-                "timestamp": timestamp,
-                "robot_state": {
-                    "emotion": "calm",
-                    "activity": "exploring",
-                    "battery_level": 95,
-                    "sensor_count": len(sensor_readings)
-                },
                 "sensor_data": sensor_readings,
-                "processing_time_ms": 50,
-                "processed_at": datetime.now().isoformat(),
                 "status": "success"
             }
-            
+
         except Exception as e:
             return self._generate_error_response(f"Binary processing error: {str(e)}")
+
 
     def write_to_csv(self, sensor_readings):
         """Write IMU data to CSV file"""
@@ -170,8 +161,11 @@ class Ultra96MQTTSubscriber:
                         if str(imu_data['sensor_id']) == str(i):
                             accel = imu_data['acceleration']
                             gyro = imu_data['gyroscope']
-                            row.extend([accel['x'], accel['y'], accel['z'],
-                                      gyro['x'], gyro['y'], gyro['z']])
+                            # Round each value to 3 decimal places
+                            row.extend([
+                                round(accel['x'], 3), round(accel['y'], 3), round(accel['z'], 3),
+                                round(gyro['x'], 3), round(gyro['y'], 3), round(gyro['z'], 3)
+                            ])
                             imu_found = True
                             break
                     if not imu_found:
