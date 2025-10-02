@@ -42,24 +42,31 @@ void tcaSelect(uint8_t channel) {
 // PKCS7 + AES CBC + Base64
 String encryptData(String plaintext) {
   int inputLength = plaintext.length();
-  byte input[inputLength + 1];
+  byte input[inputLength + 1]; // +1 for null terminator
   plaintext.getBytes(input, inputLength + 1);
 
-  int paddedLength = ((inputLength + AES_BLOCK_SIZE - 1)/AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
+  int paddedLength = ((inputLength + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
   byte paddedInput[paddedLength];
   memcpy(paddedInput, input, inputLength);
+  
+  // PKCS7 padding
   byte padValue = paddedLength - inputLength;
-  for (int i=inputLength; i<paddedLength; i++) paddedInput[i] = padValue;
+  for (int i = inputLength; i < paddedLength; i++) {
+    paddedInput[i] = padValue;
+  }
 
   byte encrypted[paddedLength];
-  aes.set_key(aes_key,16);
+  aes.set_key(aes_key, 16);
 
-  //reset IV each time
+  // Copy IV to avoid modifying the original
   byte iv_copy[16];
   memcpy(iv_copy, aes_iv, 16);
-  aes.cbc_encrypt(paddedInput, encrypted, paddedLength/16, aes_iv);
+  
+  // Encrypt
+  aes.cbc_encrypt(paddedInput, encrypted, paddedLength / 16, iv_copy);
 
-  return base64::encode(encrypted, paddedLength);
+  String encoded = base64::encode(encrypted, paddedLength);
+  return encoded;
 }
 
 void setup() {
@@ -88,12 +95,28 @@ void loop() {
     int16_t ax,ay,az,gx,gy,gz;
     imu[i].getMotion6(&ax,&ay,&az,&gx,&gy,&gz);
 
+    // Print RAW integer values
+    Serial.print("IMU"); Serial.print(i); Serial.print(" RAW - ");
+    Serial.print("Accel:("); Serial.print(ax); Serial.print(","); 
+    Serial.print(ay); Serial.print(","); Serial.print(az); Serial.print(") ");
+    Serial.print("Gyro:("); Serial.print(gx); Serial.print(","); 
+    Serial.print(gy); Serial.print(","); Serial.print(gz); Serial.print(")");
+    Serial.println();
+
     float ax_g = ax/ACCEL_SCALE;
     float ay_g = ay/ACCEL_SCALE;
     float az_g = az/ACCEL_SCALE;
     float gx_dps = gx/GYRO_SCALE;
     float gy_dps = gy/GYRO_SCALE;
     float gz_dps = gz/GYRO_SCALE;
+    
+    // Print converted values
+    Serial.print("IMU"); Serial.print(i); Serial.print(" CONVERTED - ");
+    Serial.print("Accel:("); Serial.print(ax_g,3); Serial.print(","); 
+    Serial.print(ay_g,3); Serial.print(","); Serial.print(az_g,3); Serial.print(") ");
+    Serial.print("Gyro:("); Serial.print(gx_dps,3); Serial.print(","); 
+    Serial.print(gy_dps,3); Serial.print(","); Serial.print(gz_dps,3); Serial.print(")");
+    Serial.println();
 
     packet += "IMU"+String(i)+":";
     packet += String(ax_g,3)+","+String(ay_g,3)+","+String(az_g,3)+",";
@@ -103,8 +126,8 @@ void loop() {
   // Encrypt and send
   String encrypted = encryptData(packet);
   if(client.connected()){
-    client.print(encrypted);
-    client.print("\n");  // TCP delimiter
+    client.write(encrypted.c_str(), encrypted.length());
+    client.write("\n");  // TCP delimiter
     Serial.println("📤 Sent: " + encrypted);
   } else {
     if(client.connect(laptop_ip,laptop_port)) Serial.println("✅ Reconnected");

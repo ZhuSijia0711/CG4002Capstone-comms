@@ -8,6 +8,12 @@ import os
 import ssl
 import random
 
+#import sys
+#sys.path.append("/home/xilinx/ai_code")  # <-- path to ai_model.py
+
+#from ai_model import classify_from_csv
+
+
 class Ultra96MQTTSubscriber:
     def __init__(self):
         self.session_counter = 1000
@@ -145,6 +151,15 @@ class Ultra96MQTTSubscriber:
     def run_ai_inference(self, sensor_data):
         """Simulate AI: assign a random integer 0-3 as movement class"""
         return random.randint(0, 3)
+    #def run_ai_inference(self, sensor_data):
+    #"""Call external AI model that reads from CSV"""
+    #try:
+     #   movement_class = classify_from_csv(self.csv_file)
+      #  return movement_class
+    #except Exception as e:
+     #   print(f"❌ AI inference error: {e}")
+      #  return -1
+
 
     # ---------------- MQTT message handler ----------------
     def on_message(self, client, userdata, msg):

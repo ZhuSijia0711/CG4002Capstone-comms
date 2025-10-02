@@ -43,11 +43,8 @@ class FireBeetleMQTTPublisher:
         self.buffer = b""
 
     def decrypt_data(self, encrypted_base64):
-        """Decrypt AES-encrypted data and return raw bytes.
-        If the decrypted bytes are UTF-8 text, caller may decode them.
-        """
+        """Decrypt AES-encrypted data and return raw bytes."""
         try:
-            # Accept bytes or str
             if isinstance(encrypted_base64, str):
                 b64 = encrypted_base64.strip().encode("utf-8")
             else:
@@ -58,32 +55,27 @@ class FireBeetleMQTTPublisher:
                 encrypted_data = base64.b64decode(b64, validate=True)
             except Exception:
                 try:
-                    encrypted_data = base64.b64decode(b64 + b"===")
+                    # Add padding for base64 if needed
+                    padding = 4 - (len(b64) % 4)
+                    if padding != 4:
+                        b64 += b'=' * padding
+                    encrypted_data = base64.b64decode(b64)
                 except Exception as e:
                     print(f"❌ Base64 decode failed: {e}")
                     return None
 
-            if len(encrypted_data) < 16 or len(encrypted_data) % 16 != 0:
+            if len(encrypted_data) % 16 != 0:
                 print(f"❌ Invalid ciphertext length: {len(encrypted_data)}")
                 return None
 
-            # ---- Check for prepended IV ----
-            if len(encrypted_data) >= 32:
-                possible_iv = encrypted_data[:16]
-                rest = encrypted_data[16:]
-                try:
-                    cipher = AES.new(self.aes_key, AES.MODE_CBC, possible_iv)
-                    decrypted_padded = cipher.decrypt(rest)
-                    decrypted_bytes = unpad(decrypted_padded, 16)
-                    return decrypted_bytes  # RETURN BYTES
-                except Exception:
-                    pass
-
-            # ---- Fixed IV mode ----
+            # Decrypt with fixed IV
             cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_iv)
             decrypted_padded = cipher.decrypt(encrypted_data)
+            
+            # Remove padding
             decrypted_bytes = unpad(decrypted_padded, 16)
-            return decrypted_bytes  # RETURN BYTES
+            
+            return decrypted_bytes
 
         except Exception as e:
             print(f"❌ Decryption error: {e}")
@@ -214,7 +206,7 @@ class FireBeetleMQTTPublisher:
 
                         # Pack IMUs in the order they are received
                         imu_bytes = b''
-                        for imu_label in ["IMU1","IMU2","IMU3","IMU4","IMU5"]:  # adjust if your labels differ
+                        for imu_label in ["IMU0","IMU1","IMU2","IMU3","IMU4"]:  # adjust if your labels differ
                             imu_list = self.imu_values.get(imu_label, [0.0]*6)
                             imu_list = [float(v) for v in imu_list]
                             imu_bytes += struct.pack('!6f', *imu_list)
