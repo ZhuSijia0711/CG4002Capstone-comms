@@ -61,11 +61,11 @@ class FireBeetleMQTTPublisher:
                         b64 += b'=' * padding
                     encrypted_data = base64.b64decode(b64)
                 except Exception as e:
-                    print(f"❌ Base64 decode failed: {e}")
+                    print(f"Base64 decode failed: {e}")
                     return None
 
             if len(encrypted_data) % 16 != 0:
-                print(f"❌ Invalid ciphertext length: {len(encrypted_data)}")
+                print(f"Invalid ciphertext length: {len(encrypted_data)}")
                 return None
 
             # Decrypt with fixed IV
@@ -78,7 +78,7 @@ class FireBeetleMQTTPublisher:
             return decrypted_bytes
 
         except Exception as e:
-            print(f"❌ Decryption error: {e}")
+            print(f"Decryption error: {e}")
             return None
 
 
@@ -105,20 +105,20 @@ class FireBeetleMQTTPublisher:
         try:
             self.mqtt_client.connect(self.MQTT_BROKER, self.MQTT_PORT, 60)
             self.mqtt_client.loop_start()
-            print(f"✅ Connected to MQTT broker at {self.MQTT_BROKER}:{self.MQTT_PORT}")
+            print(f"Connected to MQTT broker at {self.MQTT_BROKER}:{self.MQTT_PORT}")
             return True
         except Exception as e:
-            print(f"❌ Failed to connect to MQTT broker: {e}")
+            print(f"Failed to connect to MQTT broker: {e}")
             return False
 
     def on_mqtt_connect(self, client, userdata, flags, rc):
         if rc == 0:
-            print("✅ MQTT client connected successfully")
+            print("MQTT client connected successfully")
         else:
-            print(f"❌ MQTT client failed to connect: {rc}")
+            print(f"MQTT client failed to connect: {rc}")
 
     def on_mqtt_disconnect(self, client, userdata, rc):
-        print(f"⚠️ MQTT client disconnected: {rc}")
+        print(f"MQTT client disconnected: {rc}")
 
     def publish_to_mqtt(self, data, addr):
         """Publish TCP data to MQTT topic"""
@@ -146,9 +146,9 @@ class FireBeetleMQTTPublisher:
                 )
                 print(f"📤 Published {length} bytes to {self.topic_sensor_to_ultra96}")
             else:
-                print("❌ MQTT client not connected, cannot publish")
+                print("MQTT client not connected, cannot publish")
         except Exception as e:
-            print(f"❌ MQTT publish error: {e}")
+            print(f"MQTT publish error: {e}")
 
     def publish_binary_to_mqtt(self, data_bytes):
         """Publish raw binary payload (not JSON)"""
@@ -158,9 +158,9 @@ class FireBeetleMQTTPublisher:
                 payload=data_bytes,
                 qos=1
             )
-            print(f"📤 Published {len(data_bytes)} binary bytes to {self.topic_sensor_to_ultra96}")
+            print(f"Published {len(data_bytes)} binary bytes to {self.topic_sensor_to_ultra96}")
         else:
-            print("❌ MQTT client not connected, cannot publish binary data")
+            print("MQTT client not connected, cannot publish binary data")
 
 
     def handle_tcp_client(self, client_socket, addr):
@@ -191,10 +191,10 @@ class FireBeetleMQTTPublisher:
                         # Try print human-readable text if it is text
                         try:
                             text = decrypted_bytes.decode('utf-8')
-                            print(f"✅ Decrypted text (preview): {text[:80]}...")
+                            print(f"Decrypted text (preview): {text[:80]}...")
                         except UnicodeDecodeError:
                             # Not text — print hex preview
-                            print(f"✅ Decrypted raw bytes (hex preview): {decrypted_bytes[:24].hex()}...")
+                            print(f"Decrypted raw bytes (hex preview): {decrypted_bytes[:24].hex()}...")
 
                         # First, parse decrypted text if possible
                         try:
@@ -215,10 +215,10 @@ class FireBeetleMQTTPublisher:
                         self.publish_binary_to_mqtt(imu_bytes)
 
                     else:
-                        print(f"❌ Failed to decrypt message: {encrypted_b64_bytes[:50]!r}...")
+                        print(f"Failed to decrypt message: {encrypted_b64_bytes[:50]!r}...")
 
         except Exception as e:
-            print(f"❌ Error with TCP client {addr}: {e}")
+            print(f"Error with TCP client {addr}: {e}")
         finally:
             client_socket.close()
             print(f"🔌 TCP connection from {addr} closed")
@@ -240,7 +240,7 @@ class FireBeetleMQTTPublisher:
                 print(f"{label}: Accel({nums[0]}, {nums[1]}, {nums[2]}), "
                     f"Gyro({nums[3]}, {nums[4]}, {nums[5]})")
         except Exception as e:
-            print(f"❌ Error parsing IMU data: {e}")
+            print(f"Error parsing IMU data: {e}")
 
 
     def start_tcp_server(self):
@@ -260,7 +260,7 @@ class FireBeetleMQTTPublisher:
                 client_thread.daemon = True
                 client_thread.start()
         except KeyboardInterrupt:
-            print("🛑 TCP server shutting down...")
+            print("TCP server shutting down...")
         finally:
             tcp_socket.close()
             if self.mqtt_client:
@@ -271,7 +271,7 @@ class FireBeetleMQTTPublisher:
         """Start the FireBeetle publisher"""
         print("Starting FireBeetle as MQTT Publisher...")
         if not self.setup_mqtt():
-            print("❌ Failed to setup MQTT, exiting...")
+            print("Failed to setup MQTT, exiting...")
             return
         self.start_tcp_server()
 

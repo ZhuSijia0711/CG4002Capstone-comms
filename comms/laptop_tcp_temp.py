@@ -11,7 +11,7 @@ class MosquittoController:
     def start_mosquitto(self):
         """Start Mosquitto broker"""
         try:
-            print("🚀 Starting Mosquitto MQTT broker with TLS...")
+            print("Starting Mosquitto MQTT broker with TLS...")
             
             # Start mosquitto with our config
             self.mosquitto_process = subprocess.Popen(
@@ -24,7 +24,7 @@ class MosquittoController:
             time.sleep(1)
             if self.mosquitto_process.poll() is not None:
                 stdout, stderr = self.mosquitto_process.communicate()
-                print("❌ Mosquitto exited at startup")
+                print("Mosquitto exited at startup")
                 if stdout:
                     print("---- STDOUT ----")
                     print(stdout.decode())
@@ -33,25 +33,25 @@ class MosquittoController:
                     print(stderr.decode())
                 return False
 
-            print("✅ Mosquitto broker started successfully")
-            print("📍 Listening on: 0.0.0.0:8883 (TLS)")
-            print("🔐 TLS: Enabled")
+            print("Mosquitto broker started successfully")
+            print("Listening on: 0.0.0.0:8883 (TLS)")
+            print("TLS: Enabled")
             print("=" * 60)
             print("Waiting for FireBeetle and Ultra96 connections...")
             print("Press Ctrl+C to stop the broker")
 
             return True
         except Exception as e:
-            print(f"❌ Failed to start Mosquitto: {e}")
+            print(f"Failed to start Mosquitto: {e}")
             return False
 
     def stop_mosquitto(self):
         """Stop Mosquitto broker"""
         if self.mosquitto_process:
-            print("🛑 Stopping Mosquitto broker...")
+            print("Stopping Mosquitto broker...")
             self.mosquitto_process.terminate()
             self.mosquitto_process.wait()
-            print("✅ Mosquitto broker stopped")
+            print("Mosquitto broker stopped")
 
     def monitor_status(self):
         """Monitor and display broker status"""
@@ -59,7 +59,7 @@ class MosquittoController:
             try:
                 # Check if mosquitto is still running
                 if self.mosquitto_process and self.mosquitto_process.poll() is not None:
-                    print("❌ Mosquitto broker stopped unexpectedly")
+                    print("Mosquitto broker stopped unexpectedly")
                     break
                     
                 time.sleep(2)
@@ -67,7 +67,7 @@ class MosquittoController:
             except KeyboardInterrupt:
                 break
             except Exception as e:
-                print(f"❌ Monitoring error: {e}")
+                print(f"Monitoring error: {e}")
                 break
 
     def start(self):
@@ -78,15 +78,15 @@ class MosquittoController:
         try:
             self.monitor_status()
         except KeyboardInterrupt:
-            print("\n🛑 Shutdown requested by user...")
+            print("\nShutdown requested by user...")
         except Exception as e:
-            print(f"💥 Unexpected error: {e}")
+            print(f"Unexpected error: {e}")
         finally:
             self.stop_mosquitto()
 
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully"""
-    print('\n🛑 Shutdown requested by user...')
+    print('\nShutdown requested by user...')
     sys.exit(0)
 
 if __name__ == "__main__":

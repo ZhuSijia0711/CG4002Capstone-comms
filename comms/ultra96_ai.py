@@ -19,7 +19,7 @@ class Ultra96MQTTSubscriber:
         self.session_counter = 1000
         
         # MQTT Configuration - Connect to Laptop broker
-        self.MQTT_BROKER = "172.17.183.135"  # Laptop IP
+        self.MQTT_BROKER = "localhost"  # Laptop IP
         self.MQTT_PORT = 8883               # TLS MQTT port
         
         # MQTT Topics
@@ -53,9 +53,9 @@ class Ultra96MQTTSubscriber:
                             f"IMU{i}_gx", f"IMU{i}_gy", f"IMU{i}_gz"
                         ])
                     writer.writerow(headers)
-                print(f"✅ Initialized CSV file: {self.csv_file}")
+                print(f"Initialized CSV file: {self.csv_file}")
             except Exception as e:
-                print(f"❌ Error initializing CSV: {e}")
+                print(f"Error initializing CSV: {e}")
 
     def write_to_csv(self, sensor_readings):
         try:
@@ -77,9 +77,9 @@ class Ultra96MQTTSubscriber:
                     if not imu_found:
                         row.extend([0.0] * 6)
                 writer.writerow(row)
-                print(f"💾 Data written to CSV: {len(row)} values")
+                print(f"Data written to CSV: {len(row)} values")
         except Exception as e:
-            print(f"❌ Error writing to CSV: {e}")
+            print(f"Error writing to CSV: {e}")
 
     # ---------------- MQTT setup ----------------
     def setup_mqtt(self):
@@ -96,14 +96,14 @@ class Ultra96MQTTSubscriber:
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
-            print("✅ Connected to Laptop MQTT broker successfully")
+            print("Connected to Laptop MQTT broker successfully")
             client.subscribe(self.topic_sensor_to_ultra96)
-            print(f"📝 Subscribed to topic: {self.topic_sensor_to_ultra96}")
+            print(f"Subscribed to topic: {self.topic_sensor_to_ultra96}")
         else:
-            print(f"❌ Failed to connect to MQTT broker: {rc}")
+            print(f"Failed to connect to MQTT broker: {rc}")
 
     def on_disconnect(self, client, userdata, rc):
-        print(f"⚠️  Disconnected from broker: {rc}")
+        print(f"Disconnected from broker: {rc}")
 
     # ---------------- Sensor data handling ----------------
     def process_binary_sensor_data(self, raw_data):
@@ -157,7 +157,7 @@ class Ultra96MQTTSubscriber:
      #   movement_class = classify_from_csv(self.csv_file)
       #  return movement_class
     #except Exception as e:
-     #   print(f"❌ AI inference error: {e}")
+     #   print(f"AI inference error: {e}")
       #  return -1
 
 
@@ -166,7 +166,7 @@ class Ultra96MQTTSubscriber:
         try:
             if msg.topic == self.topic_sensor_to_ultra96:
                 raw_data = msg.payload
-                print(f"📥 Received {len(raw_data)} bytes from laptop")
+                print(f"Received {len(raw_data)} bytes from laptop")
 
                 processed = self.process_binary_sensor_data(raw_data)
                 if processed["status"] != "success":
@@ -186,10 +186,10 @@ class Ultra96MQTTSubscriber:
                 self.client.publish(self.topic_processed_data, json.dumps(response), qos=1)
                 # Publish just the integer as a string
                 #self.client.publish(self.topic_processed_data, str(movement_class), qos=1)
-                print(f"📤 Sent movement class {movement_class} back to laptop")
+                print(f"Sent movement class {movement_class} back to laptop")
 
         except Exception as e:
-            error_msg = f"❌ Error processing MQTT message: {e}"
+            error_msg = f"Error processing MQTT message: {e}"
             print(error_msg)
             self.client.publish(self.topic_errors, error_msg, qos=1)
 
@@ -198,14 +198,14 @@ class Ultra96MQTTSubscriber:
         try:
             self.client.connect(self.MQTT_BROKER, self.MQTT_PORT, 60)
             self.client.loop_start()
-            print(f"✅ Connected to Laptop broker at {self.MQTT_BROKER}:{self.MQTT_PORT}")
+            print(f"Connected to Laptop broker at {self.MQTT_BROKER}:{self.MQTT_PORT}")
 
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            print("\n🛑 Shutdown requested...")
+            print("\nShutdown requested...")
         except Exception as e:
-            print(f"❌ Failed to start: {e}")
+            print(f"Failed to start: {e}")
         finally:
             self.client.loop_stop()
             self.client.disconnect()
@@ -213,7 +213,7 @@ class Ultra96MQTTSubscriber:
 
 if __name__ == "__main__":
     print("="*60)
-    print("🤖 Ultra96 MQTT Subscriber (TLS, AI Simulation)")
+    print("Ultra96 MQTT Subscriber (TLS, AI Simulation)")
     print("="*60)
     subscriber = Ultra96MQTTSubscriber()
     subscriber.start()
