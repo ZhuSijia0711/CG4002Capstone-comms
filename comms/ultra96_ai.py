@@ -184,7 +184,9 @@ class Ultra96MQTTSubscriber:
 
                 # Publish response over TLS
                 self.client.publish(self.topic_processed_data, json.dumps(response), qos=1)
-                print(f"📤 Sent processed AI data back to laptop")
+                # Publish just the integer as a string
+                #self.client.publish(self.topic_processed_data, str(movement_class), qos=1)
+                print(f"📤 Sent movement class {movement_class} back to laptop")
 
         except Exception as e:
             error_msg = f"❌ Error processing MQTT message: {e}"
