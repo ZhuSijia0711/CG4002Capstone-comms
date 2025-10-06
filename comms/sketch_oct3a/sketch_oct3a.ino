@@ -3,13 +3,13 @@
 #include <WiFiClientSecure.h>
 
 // WiFi credentials
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid = "iPhone";
+const char* password = "zhuqshenw";
 
 // MQTT Configuration
 const char* mqtt_broker = "172.17.183.135";
 const int mqtt_port = 8883;
-const char* topic_processed_data = "robot/processed/data";
+const char* topic_processed_data = "robot/movement/data";
 
 // Your CA Certificate
 const char* ca_cert = \

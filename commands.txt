@@ -18,7 +18,11 @@ chmod +x automate_fpga.sh
 to start mosquitto
 sudo mosquitto -c /etc/mosquitto/mosquitto.conf -v
 
-sudo pkill mosquitto
+sudo pkill mosquito
+
+sudo lsof -i :8883
+sudo kill <PID>
+
 
 
 ssh -R 8883:localhost:8883 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
