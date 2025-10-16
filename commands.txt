@@ -1,0 +1,74 @@
+(pynq-venv) xilinx@pynq:/$ sudo chown xilinx:xilinx /home/xilinx      cd /
+(pynq-venv) xilinx@pynq:/$ cd ~
+(pynq-venv) xilinx@pynq:~$ mkdir CG4002
+(pynq-venv) xilinx@pynq:~$ cd CG4002
+(pynq-venv) xilinx@pynq:~/CG4002$ vim ultra96_processor.py
+
+ssh -L 18883:localhost:8883 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
+
+ssh xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
+
+所以数据能够返回是因为MQTT over TCP是双向通信，SSH隧道保持了连接的持久性，允许数据在两个方向上流动。只通过mqtt和ssh -L 8888:localhost:8889 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
+
+# 给脚本执行权限
+chmod +x automate_fpga.sh
+
+./automate_fpga.sh
+
+to start mosquitto
+sudo mosquitto -c /etc/mosquitto/mosquitto.conf -v
+
+sudo pkill mosquito
+
+sudo lsof -i :8883
+sudo kill <PID>
+
+
+
+ssh -R 8883:localhost:8883 xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg
+
+latest file:
+hardware_mqtt_tcp_temp.py 
+laptop_tcp_temp.py
+ultra96_ai.py
+
+
+on ultra96: pip3 install paho-mqtt
+in xilinx@pynq:/etc/mosquitto/conf.d$
+
+# TLS Configuration
+listener 8889
+protocol mqtt
+
+# TLS settings
+cafile /etc/mosquitto/certs/ca.crt   这个path应该要换/home/xilinx/tls_certs/
+certfile /etc/mosquitto/certs/ultra96.crt
+keyfile /etc/mosquitto/certs/ultra96.key
+
+# Require certificate from clients
+require_certificate true
+
+# Use TLS version 1.2
+tls_version tlsv1.2
+
+# Allow anonymous connections (for testing, can disable later)
+allow_anonymous true
+
+on laptop:
+scp ca.crt ultra96.crt ultra96.key xilinx@makerslab-fpga-53.ddns.comp.nus.edu.sg:/home/xilinx/tls_certs/
+
+
+https://chat.deepseek.com/a/chat/s/09603992-14ad-4257-ae44-596fcda7527f
+
+unity password 1234
+https://chatgpt.com/c/68ebcb20-f984-8324-be3f-18cf5f5db94b for unity
+
+tcp_out.py
+test.py
+Arduino oct16
+
+flow:
+vs code run : hardware_mqtt_tcp_temp.py, tcp_unity.py
+wsl run: laptop_tcp_temp, 
+ultra96 run: ultra96_ai_v2.py
+

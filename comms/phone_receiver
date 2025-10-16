@@ -1,0 +1,32 @@
+import paho.mqtt.client as mqtt
+import ssl
+
+BROKER = "172.17.183.135"   # laptop's IP
+PORT = 8883                 # TLS port
+TOPIC = "robot/processed/data"
+
+CA_CERT = "ca.crt"  # same CA cert as Ultra96 uses
+
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("✅ Connected to broker")
+        client.subscribe(TOPIC)
+    else:
+        print(f"❌ Failed to connect: {rc}")
+
+def on_message(client, userdata, msg):
+    # Since Ultra96 publishes just an integer string like "2"
+    try:
+        value = int(msg.payload.decode().strip())
+        print(f"📥 Movement class received: {value}")
+    except Exception as e:
+        print(f"❌ Parse error: {e}, raw: {msg.payload}")
+
+client = mqtt.Client("phone_visualiser")
+client.tls_set(ca_certs=CA_CERT, tls_version=ssl.PROTOCOL_TLSv1_2)
+client.tls_insecure_set(True)  # if you're using self-signed certs
+
+client.on_connect = on_connect
+client.on_message = on_message
+client.connect(BROKER, PORT, 60)
+client.loop_forever()

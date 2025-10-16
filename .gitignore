@@ -1,0 +1,12 @@
+# Ignore Python virtual environment
+mqtt_env/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore build and logs
+*.log
+*.tmp
