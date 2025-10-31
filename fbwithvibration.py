@@ -192,18 +192,26 @@ class FireBeetleMQTTPublisher:
                         try:
                             text = decrypted_bytes.decode('utf-8')
                             print(f"🔓 Decrypted text: {text[:80]}...")
-                            self.parse_imu_data(text)
                         except UnicodeDecodeError:
                             print(f"🔓 Decrypted raw bytes: {decrypted_bytes[:24].hex()}...")
+                            continue
 
-                        # Pack IMU values into binary format
-                        imu_bytes = b''
-                        for imu_label in ["IMU0", "IMU1", "IMU2", "IMU3", "IMU4"]:
-                            imu_list = self.imu_values.get(imu_label, [0.0]*6)
-                            imu_list = [float(v) for v in imu_list]
-                            imu_bytes += struct.pack('!6f', *imu_list)
+                        # Parse all IMU sets
+                        all_sets = self.parse_imu_data(text)
 
-                        self.publish_binary_to_mqtt(imu_bytes)
+                        # Pack all sets into a single binary message
+                        all_bytes = b''
+                        for imu_set in all_sets:
+                            for imu_label in ["IMU0", "IMU1", "IMU2", "IMU3", "IMU4"]:
+                                imu_list = imu_set.get(imu_label, [0.0]*6)
+                                imu_list = [float(v) for v in imu_list]
+                                all_bytes += struct.pack('!6f', *imu_list)
+
+                        if all_bytes:
+                            self.publish_binary_to_mqtt(all_bytes)
+                            print(f"📤 Published {len(all_bytes)} bytes to Ultra96 "
+                                f"({len(all_sets)} sets, {len(all_sets)*5} IMUs)")
+
                     else:
                         print(f"❌ Failed to decrypt message from {addr}")
 
@@ -214,23 +222,30 @@ class FireBeetleMQTTPublisher:
             self.tcp_clients.discard(client_socket)
             print(f"🔌 TCP connection closed: {addr}")
 
-    def parse_imu_data(self, data):
-        """Parse IMU data from decrypted FireBeetle string"""
-        try:
-            imu_data = data.strip().split(";")
-            for imu in imu_data:
-                if not imu or ":" not in imu:
-                    continue
-                label, values = imu.split(":", 1)
-                nums = values.split(",")
-                while len(nums) < 6:
-                    nums.append("---")
-                self.imu_values[label] = nums[:6]
 
-                print(f"{label}: Accel({nums[0]}, {nums[1]}, {nums[2]}), "
-                      f"Gyro({nums[3]}, {nums[4]}, {nums[5]})")
-        except Exception as e:
-            print(f"Error parsing IMU data: {e}")
+    def parse_imu_data(self, decrypted_text):
+        """
+        Parse decrypted string into a list of IMU sets.
+        Each set contains IMU0–IMU4, each with 6 float readings.
+        """
+        imu_entries = decrypted_text.strip().split(";")
+        all_sets = []
+
+        # Each set = 5 IMUs = 5 entries
+        for i in range(0, len(imu_entries), 5):
+            imu_set = imu_entries[i:i+5]
+            if len(imu_set) < 5:
+                continue
+            set_dict = {}
+            for entry in imu_set:
+                if ":" not in entry:
+                    continue
+                label, vals = entry.split(":", 1)
+                nums = [float(v) for v in vals.split(",") if v]
+                if len(nums) == 6:
+                    set_dict[label] = nums
+            all_sets.append(set_dict)
+        return all_sets
 
     def start_tcp_server(self):
         """Start TCP server to receive FireBeetle data"""

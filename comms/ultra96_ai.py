@@ -108,27 +108,37 @@ class Ultra96MQTTSubscriber:
     # ---------------- Sensor data handling ----------------
     def process_binary_sensor_data(self, raw_data):
         try:
-            if len(raw_data) != 120:
+            # Each set = 5 IMUs × 6 floats × 4 bytes per float = 120 bytes
+            if len(raw_data) % 120 != 0:
                 return self._generate_error_response(f"Invalid packet length: {len(raw_data)}")
 
-            sensor_readings = []
+            num_sets = len(raw_data) // 120
+            all_sensor_data = []
+
             offset = 0
-            for imu_id in range(5):
-                imu_values = struct.unpack('!6f', raw_data[offset:offset+24])
-                accel = {"x": imu_values[0], "y": imu_values[1], "z": imu_values[2]}
-                gyro  = {"x": imu_values[3], "y": imu_values[4], "z": imu_values[5]}
-                sensor_readings.append({
-                    "sensor_id": imu_id,
-                    "acceleration": accel,
-                    "gyroscope": gyro
-                })
-                offset += 24
+            for s in range(num_sets):
+                sensor_readings = []
+                for imu_id in range(5):
+                    imu_values = struct.unpack('!6f', raw_data[offset:offset+24])
+                    accel = {"x": imu_values[0], "y": imu_values[1], "z": imu_values[2]}
+                    gyro  = {"x": imu_values[3], "y": imu_values[4], "z": imu_values[5]}
+                    sensor_readings.append({
+                        "sensor_id": imu_id,
+                        "acceleration": accel,
+                        "gyroscope": gyro
+                    })
+                    offset += 24
 
-            self.write_to_csv(sensor_readings)
+                self.write_to_csv(sensor_readings)
+                all_sensor_data.append(sensor_readings)
 
-            return {"session_id": self.session_counter, "sensor_data": sensor_readings, "status": "success"}
+            return {"session_id": self.session_counter,
+                    "sensor_data": all_sensor_data,  # list of sets
+                    "status": "success"}
+
         except Exception as e:
             return self._generate_error_response(f"Binary processing error: {str(e)}")
+
 
     def _generate_error_response(self, error_msg):
         return {

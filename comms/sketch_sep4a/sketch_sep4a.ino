@@ -7,6 +7,7 @@
 #define NUM_IMU 5
 #define TCA_ADDR 0x70
 #define AES_BLOCK_SIZE 16
+#define N_SETS_PER_PACKET 4  
 
 MPU6050 imu[NUM_IMU];
 
@@ -90,47 +91,33 @@ void setup() {
 void loop() {
   String packet = "";
 
-  for (int i=0;i<NUM_IMU;i++){
-    tcaSelect(i);
-    int16_t ax,ay,az,gx,gy,gz;
-    imu[i].getMotion6(&ax,&ay,&az,&gx,&gy,&gz);
+  for (int set = 0; set < N_SETS_PER_PACKET; set++) {
+    for (int i = 0; i < NUM_IMU; i++) {
+      tcaSelect(i);
+      int16_t ax, ay, az, gx, gy, gz;
+      imu[i].getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-    // Print RAW integer values
-    //Serial.print("IMU"); Serial.print(i); Serial.print(" RAW - ");
-    //Serial.print("Accel:("); Serial.print(ax); Serial.print(","); 
-    //Serial.print(ay); Serial.print(","); Serial.print(az); Serial.print(") ");
-    //Serial.print("Gyro:("); Serial.print(gx); Serial.print(","); 
-    //Serial.print(gy); Serial.print(","); Serial.print(gz); Serial.print(")");
-    //Serial.println();
+      float ax_g = ax / ACCEL_SCALE;
+      float ay_g = ay / ACCEL_SCALE;
+      float az_g = az / ACCEL_SCALE;
+      float gx_dps = gx / GYRO_SCALE;
+      float gy_dps = gy / GYRO_SCALE;
+      float gz_dps = gz / GYRO_SCALE;
 
-    float ax_g = ax/ACCEL_SCALE;
-    float ay_g = ay/ACCEL_SCALE;
-    float az_g = az/ACCEL_SCALE;
-    float gx_dps = gx/GYRO_SCALE;
-    float gy_dps = gy/GYRO_SCALE;
-    float gz_dps = gz/GYRO_SCALE;
-    
-    // Print converted values
-   // Serial.print("IMU"); Serial.print(i); Serial.print(" CONVERTED - ");
-    //Serial.print("Accel:("); Serial.print(ax_g,3); Serial.print(","); 
-    //Serial.print(ay_g,3); Serial.print(","); Serial.print(az_g,3); Serial.print(") ");
-    //Serial.print("Gyro:("); Serial.print(gx_dps,3); Serial.print(","); 
-    //Serial.print(gy_dps,3); Serial.print(","); Serial.print(gz_dps,3); Serial.print(")");
-    //Serial.println();
-
-    packet += "IMU"+String(i)+":";
-    packet += String(ax_g,3)+","+String(ay_g,3)+","+String(az_g,3)+",";
-    packet += String(gx_dps,3)+","+String(gy_dps,3)+","+String(gz_dps,3)+";";
+      packet += "IMU" + String(i) + ":";
+      packet += String(ax_g, 3) + "," + String(ay_g, 3) + "," + String(az_g, 3) + ",";
+      packet += String(gx_dps, 3) + "," + String(gy_dps, 3) + "," + String(gz_dps, 3) + ";";
+    }
   }
 
-  // Encrypt and send
   String encrypted = encryptData(packet);
-  if(client.connected()){
+  if (client.connected()) {
     client.write(encrypted.c_str(), encrypted.length());
-    client.write("\n");  // TCP delimiter
-    Serial.println("📤 Sent: " + encrypted);
+    client.write("\n");
+    Serial.println("📤 Sent " + String(N_SETS_PER_PACKET) + " sets of data");
   } else {
-    if(client.connect(laptop_ip,laptop_port)) Serial.println("✅ Reconnected");
+    if (client.connect(laptop_ip, laptop_port))
+      Serial.println("✅ Reconnected");
   }
 
   delay(10);
