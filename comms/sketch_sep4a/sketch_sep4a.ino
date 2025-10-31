@@ -74,7 +74,7 @@ void setup() {
   Wire.begin();
   WiFi.begin(ssid,password);
   while(WiFi.status()!=WL_CONNECTED){ delay(500); Serial.print("."); }
-  Serial.println("\n✅ WiFi connected");
+  //Serial.println("\n✅ WiFi connected");
 
   if (!client.connect(laptop_ip, laptop_port)) Serial.println("❌ TCP connect failed");
   else Serial.println("✅ Connected to laptop");
@@ -96,12 +96,12 @@ void loop() {
     imu[i].getMotion6(&ax,&ay,&az,&gx,&gy,&gz);
 
     // Print RAW integer values
-    Serial.print("IMU"); Serial.print(i); Serial.print(" RAW - ");
-    Serial.print("Accel:("); Serial.print(ax); Serial.print(","); 
-    Serial.print(ay); Serial.print(","); Serial.print(az); Serial.print(") ");
-    Serial.print("Gyro:("); Serial.print(gx); Serial.print(","); 
-    Serial.print(gy); Serial.print(","); Serial.print(gz); Serial.print(")");
-    Serial.println();
+    //Serial.print("IMU"); Serial.print(i); Serial.print(" RAW - ");
+    //Serial.print("Accel:("); Serial.print(ax); Serial.print(","); 
+    //Serial.print(ay); Serial.print(","); Serial.print(az); Serial.print(") ");
+    //Serial.print("Gyro:("); Serial.print(gx); Serial.print(","); 
+    //Serial.print(gy); Serial.print(","); Serial.print(gz); Serial.print(")");
+    //Serial.println();
 
     float ax_g = ax/ACCEL_SCALE;
     float ay_g = ay/ACCEL_SCALE;
@@ -111,12 +111,12 @@ void loop() {
     float gz_dps = gz/GYRO_SCALE;
     
     // Print converted values
-    Serial.print("IMU"); Serial.print(i); Serial.print(" CONVERTED - ");
-    Serial.print("Accel:("); Serial.print(ax_g,3); Serial.print(","); 
-    Serial.print(ay_g,3); Serial.print(","); Serial.print(az_g,3); Serial.print(") ");
-    Serial.print("Gyro:("); Serial.print(gx_dps,3); Serial.print(","); 
-    Serial.print(gy_dps,3); Serial.print(","); Serial.print(gz_dps,3); Serial.print(")");
-    Serial.println();
+   // Serial.print("IMU"); Serial.print(i); Serial.print(" CONVERTED - ");
+    //Serial.print("Accel:("); Serial.print(ax_g,3); Serial.print(","); 
+    //Serial.print(ay_g,3); Serial.print(","); Serial.print(az_g,3); Serial.print(") ");
+    //Serial.print("Gyro:("); Serial.print(gx_dps,3); Serial.print(","); 
+    //Serial.print(gy_dps,3); Serial.print(","); Serial.print(gz_dps,3); Serial.print(")");
+    //Serial.println();
 
     packet += "IMU"+String(i)+":";
     packet += String(ax_g,3)+","+String(ay_g,3)+","+String(az_g,3)+",";
@@ -133,5 +133,5 @@ void loop() {
     if(client.connect(laptop_ip,laptop_port)) Serial.println("✅ Reconnected");
   }
 
-  delay(1000);
+  delay(10);
 }

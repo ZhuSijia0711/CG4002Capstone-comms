@@ -26,7 +26,7 @@ FIREBEETLE_PORT = 5000
 # -------------------------------
 # Unity TCP + AES config
 # -------------------------------
-UNITY_IP = "127.0.0.1"   # Unity runs on same laptop
+UNITY_IP = "172.20.10.2"   # Unity runs on same laptop
 UNITY_PORT = 6000
 
 AES_KEY = b"1234567890abcdef"

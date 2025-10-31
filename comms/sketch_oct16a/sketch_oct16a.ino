@@ -5,7 +5,7 @@
 const char* ssid = "iPhone";
 const char* password = "zhuqshenw";
 
-// ---------------- TCP Server Configuration ----------------
+// ---------------- TCP  Configuration ----------------
 WiFiServer server(5000);
 WiFiClient tcpClient;
 bool tcpClientConnected = false;
@@ -77,7 +77,7 @@ void loop() {
   // Handle TCP connections and encrypted commands
   handleTCP();
   
-  // Handle UDP commands for motor control
+  // Handle UDP coyesmmands for motor control
   handleUDP();
   
   delay(50);
@@ -259,4 +259,4 @@ void petAction() {
 void feedAction() {
   Serial.println("🍖 Feed action");
   moveForwardShort();
-}
+}Server
