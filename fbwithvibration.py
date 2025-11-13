@@ -33,7 +33,7 @@ class FireBeetleMQTTPublisher:
 
         # MQTT Topics
         self.topic_sensor_to_ultra96 = "robot/sensor/to_ultra96"
-        self.topic_ultra96_to_sensor = "robot/processed/data"
+        self.topic_ultra96_to_sensor = "ultra96/processed/to_firebeetle"
 
         # MQTT client
         self.mqtt_client = None

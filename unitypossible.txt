@@ -1,0 +1,286 @@
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using UnityEngine;
+using System.Security.Cryptography;
+using System.Collections.Generic;
+
+public class BatteryDataReceiver : MonoBehaviour
+{
+    [Header("Network Settings")]
+    public string serverIP = "172.20.10.2"; // laptop ip
+    public int serverPort = 4211;
+    
+    [Header("Battery Display")]
+    public UnityEngine.UI.Text batteryText;
+    public UnityEngine.UI.Slider batterySlider;
+    
+    private TcpClient client;
+    private NetworkStream stream;
+    private Thread receiveThread;
+    private bool isConnected = false;
+    
+    // AES decryption key
+    private byte[] aesKey = new byte[] {
+        0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
+        0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C
+    };
+    
+    private byte[] aesIV = new byte[] {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+    };
+    
+    private float currentVoltage = 0f;
+    private float currentPercentage = 0f;
+    private bool newDataReceived = false;
+    
+    void Start()
+    {
+        ConnectToServer();
+    }
+    
+    void ConnectToServer()
+    {
+        try
+        {
+            client = new TcpClient();
+            client.Connect(serverIP, serverPort);
+            stream = client.GetStream();
+            isConnected = true;
+            
+            receiveThread = new Thread(new ThreadStart(ReceiveData));
+            receiveThread.IsBackground = true;
+            receiveThread.Start();
+            
+            Debug.Log($"✅ Connected to battery server: {serverIP}:{serverPort}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"❌ Failed to connect: {e.Message}");
+            isConnected = false;
+        }
+    }
+    
+    void ReceiveData()
+    {
+        byte[] buffer = new byte[1024];
+        StringBuilder messageBuilder = new StringBuilder();
+        
+        while (isConnected && client.Connected)
+        {
+            try
+            {
+                int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                if (bytesRead > 0)
+                {
+                    string receivedData = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    messageBuilder.Append(receivedData);
+                    
+                   
+                    string allData = messageBuilder.ToString();
+                    int newlineIndex;
+                    
+                    while ((newlineIndex = allData.IndexOf('\n')) >= 0)
+                    {
+                        string completeMessage = allData.Substring(0, newlineIndex).Trim();
+                        allData = allData.Substring(newlineIndex + 1);
+                        
+                        if (!string.IsNullOrEmpty(completeMessage))
+                        {
+                            ProcessEncryptedMessage(completeMessage);
+                        }
+                    }
+                    
+                    messageBuilder = new StringBuilder(allData);
+                }
+                else
+                {
+                   
+                    break;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Receive error: {e.Message}");
+                break;
+            }
+        }
+        
+        isConnected = false;
+        Debug.Log("⚠️ Disconnected from battery server");
+    }
+    
+    void ProcessEncryptedMessage(string encryptedBase64)
+    {
+        try
+        {
+            
+            string decryptedData = DecryptBatteryData(encryptedBase64);
+            
+           
+            ParseBatteryData(decryptedData);
+            
+            Debug.Log($"🔓 Decrypted: {decryptedData}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"❌ Decryption failed: {e.Message}");
+        }
+    }
+    
+    string DecryptBatteryData(string encryptedBase64)
+    {
+        try
+        {
+       
+            byte[] encryptedData = Convert.FromBase64String(encryptedBase64);
+            
+           
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = aesKey;
+                aes.IV = aesIV;
+                aes.Mode = CipherMode.CBC;
+                aes.Padding = PaddingMode.PKCS7;
+                
+                using (ICryptoTransform decryptor = aes.CreateDecryptor())
+                using (System.IO.MemoryStream ms = new System.IO.MemoryStream(encryptedData))
+                using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                using (System.IO.StreamReader reader = new StreamReader(cs))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Decryption error: {e.Message}");
+        }
+    }
+    
+    void ParseBatteryData(string decryptedData)
+    {
+        try
+        {
+            // 数据格式: "VOLTAGE:3.750,PERCENTAGE:85"
+            string[] parts = decryptedData.Split(',');
+            
+            if (parts.Length == 2)
+            {
+                
+                if (parts[0].StartsWith("VOLTAGE:"))
+                {
+                    string voltageStr = parts[0].Substring(8); 
+                    if (float.TryParse(voltageStr, out float voltage))
+                    {
+                        currentVoltage = voltage;
+                    }
+                }
+                
+
+                if (parts[1].StartsWith("PERCENTAGE:"))
+                {
+                    string percentageStr = parts[1].Substring(11); // 去掉 "PERCENTAGE:"
+                    if (float.TryParse(percentageStr, out float percentage))
+                    {
+                        currentPercentage = percentage;
+                        newDataReceived = true;
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"❌ Parse battery data failed: {e.Message}");
+        }
+    }
+    
+    void Update()
+    {
+       
+        if (newDataReceived)
+        {
+            UpdateBatteryDisplay();
+            newDataReceived = false;
+        }
+        
+       
+        if (!isConnected && Time.frameCount % 300 == 0) // 每5秒尝试重连一次
+        {
+            TryReconnect();
+        }
+    }
+    
+    void UpdateBatteryDisplay()
+    {
+        if (batteryText != null)
+        {
+            batteryText.text = $"Battery: {currentVoltage:0.00}V ({currentPercentage:0}%)";
+        }
+        
+        if (batterySlider != null)
+        {
+            batterySlider.value = currentPercentage / 100f;
+        }
+        
+      
+        UpdateBatteryColor();
+    }
+    
+    void UpdateBatteryColor()
+    {
+        if (batteryText != null)
+        {
+            if (currentPercentage > 50)
+                batteryText.color = Color.green;
+            else if (currentPercentage > 20)
+                batteryText.color = Color.yellow;
+            else
+                batteryText.color = Color.red;
+        }
+    }
+    
+    void TryReconnect()
+    {
+        if (!isConnected)
+        {
+            Debug.Log("🔄 Attempting to reconnect...");
+            ConnectToServer();
+        }
+    }
+    
+    void OnApplicationQuit()
+    {
+        Disconnect();
+    }
+    
+    void OnDestroy()
+    {
+        Disconnect();
+    }
+    
+    void Disconnect()
+    {
+        isConnected = false;
+        
+        if (receiveThread != null && receiveThread.IsAlive)
+        {
+            receiveThread.Abort();
+        }
+        
+        if (stream != null)
+        {
+            stream.Close();
+        }
+        
+        if (client != null)
+        {
+            client.Close();
+        }
+        
+        Debug.Log("🔌 Battery receiver disconnected");
+    }
+}

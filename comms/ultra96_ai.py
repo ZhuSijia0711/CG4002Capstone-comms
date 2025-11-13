@@ -24,7 +24,7 @@ class Ultra96MQTTSubscriber:
         
         # MQTT Topics
         self.topic_sensor_to_ultra96 = "robot/sensor/to_ultra96"
-        self.topic_processed_data = "robot/processed/data"
+        self.topic_processed_data = "ultra96/processed/to_firebeetle"
         self.topic_errors = "robot/errors"
         
         # TLS Certificate paths (on Ultra96)

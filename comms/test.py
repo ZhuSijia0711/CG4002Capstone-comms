@@ -9,7 +9,7 @@ import random
 # -------------------------------
 BROKER_IP = "172.17.183.135"       # Replace with your laptop LAN IP
 BROKER_PORT = 8883
-TOPIC_RAW = "robot/processed/data"  # Same as in the bridge
+TOPIC_RAW = "ultra96/processed/to_firebeetle"  # Same as in the bridge
 
 # TLS certs
 TLS_CA = "/mnt/d/y4sem1/CG4002/certs/ca.crt"
